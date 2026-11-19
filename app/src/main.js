@@ -7,6 +7,9 @@ import { shotModeFromParams, applyShotMode } from './shots.js';
 const SAMPLES = {
   boulevard: 'samples/boulevard.jpg',
   pier: 'samples/pier.jpg',
+  'hero-sunset': 'samples/hero-sunset.jpg',
+  cruise: 'samples/cruise.jpg',
+  rooftop: 'samples/rooftop.jpg',
 };
 
 const PHOTO_NAMES = Object.keys(SAMPLES);
@@ -71,21 +74,28 @@ function detectFocus(img) {
   }
 }
 
+// Face focus per photo, measured from the photo itself: where the face
+// sits in the frame. The hero strip is wide and short, so its focus sits
+// a little below the face to lift the whole face above the giant title;
+// the near-square bottom panels centre on the face instead.
+const PHOTO_FOCUS = {
+  boulevard: { hero: { zoom: 1, cx: 0.5, cy: 0.22 }, panel: { zoom: 1, cx: 0.48, cy: 0.19 } },
+  pier: { hero: { zoom: 1, cx: 0.38, cy: 0.32 }, panel: { zoom: 1, cx: 0.38, cy: 0.24 } },
+  'hero-sunset': { hero: { zoom: 1, cx: 0.44, cy: 0.35 }, panel: { zoom: 1, cx: 0.44, cy: 0.27 } },
+  cruise: { hero: { zoom: 1, cx: 0.5, cy: 0.36 }, panel: { zoom: 1, cx: 0.5, cy: 0.3 } },
+  rooftop: { hero: { zoom: 1, cx: 0.5, cy: 0.38 }, panel: { zoom: 1, cx: 0.5, cy: 0.33 } },
+};
+
 function defaultPanels(photo) {
-  const crops = [
-    { zoom: 1.05, cx: 0.5, cy: 0.4 },
-    { zoom: 1.3, cx: 0.32, cy: 0.35 },
-    { zoom: 1.2, cx: 0.68, cy: 0.45 },
-    { zoom: 1.4, cx: 0.5, cy: 0.3 },
-    { zoom: 1.15, cx: 0.42, cy: 0.55 },
-  ];
-  return crops.map((c, i) => ({
-    photo: i % 2 === 0 ? photo : (photo === 'boulevard' ? 'pier' : 'boulevard'),
-    scene: null,
-    zoom: c.zoom,
-    cx: c.cx,
-    cy: c.cy,
-  }));
+  // Hero first, then every other photo exactly once: four different bottom
+  // panels, never a repeat.
+  const names = [photo, ...PHOTO_NAMES.filter((n) => n !== photo)];
+  return names.map((name, i) => {
+    const focus = PHOTO_FOCUS[name]
+      || { hero: { zoom: 1, cx: 0.5, cy: 0.4 }, panel: { zoom: 1, cx: 0.5, cy: 0.4 } };
+    const crop = i === 0 ? focus.hero : focus.panel;
+    return { photo: name, scene: null, zoom: crop.zoom, cx: crop.cx, cy: crop.cy };
+  });
 }
 
 function readStateFromQuery(params) {
@@ -266,12 +276,9 @@ async function boot() {
       // A missing sample leaves its panels to the painted scenes.
     }
   }
-  // Hero focus from the real photo, so the subject is centred, not guessed.
-  if (photos[state.panels[0].photo]) {
-    const focus = detectFocus(photos[state.panels[0].photo]);
-    state.panels[0].cx = focus.cx;
-    state.panels[0].cy = focus.cy;
-  }
+  // Keep the hand-set hero focus from defaultPanels: the brightness scan
+  // used to drag the face down under the giant title, so it no longer
+  // overrides the framing here. (Auto GTA still uses the scan on demand.)
   wireControls();
   syncControls();
   app.redraw();
