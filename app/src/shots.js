@@ -1,28 +1,30 @@
-// Fixed scenes for screenshots: ?shot=editor shows the app with a sample photo
-// loaded and the Auto GTA preset applied; ?shot=cover shows a cover alone.
-// `photo` picks the sample (samples/<photo>.jpg), `caption` the title, and the
-// optional `layout`, `grade`, `size`, `tagline`, `mission`, `cash` and `wanted`
-// params set the rest. window.__shotReady is set once painted.
-//
-// Unknown values never break a shot: an unknown ?shot= falls back to the
-// editor view (with a console warning, so a typo in a shot URL is visible but
-// harmless), and an unknown photo name falls back to the pier sample. That
-// keeps a bad query string from producing a blank screenshot — the shot still
-// renders, just with the defaults.
-const KNOWN_SHOTS = new Set(['editor', 'cover']);
-const KNOWN_PHOTOS = new Set(['pier', 'boulevard']);
+// Shot modes: how the page presents itself for a screenshot or a live edit.
+// ?shot=cover shows only the finished poster, full-bleed; ?shot=editor (and
+// anything else) shows the editor around the live preview. Unknown values
+// fall back to the cover, so a bad link still renders something shippable.
+export const SHOT_MODES = ['cover', 'editor'];
 
-export async function runShot(shot, query, load) {
-  const safeShot = KNOWN_SHOTS.has(shot) ? shot : 'editor';
-  if (safeShot !== shot) {
-    console.warn(`[shots] unknown ?shot=${shot}, falling back to "editor"`);
-  }
-  if (safeShot === 'cover') document.body.classList.add('shot-cover');
-  const requestedPhoto = query.get('photo') ?? 'pier';
-  const photo = KNOWN_PHOTOS.has(requestedPhoto) ? requestedPhoto : 'pier';
-  if (photo !== requestedPhoto) {
-    console.warn(`[shots] unknown photo "${requestedPhoto}", falling back to "pier"`);
-  }
-  await load(`samples/${photo}.jpg`, query.get('caption') ?? 'Sunset Heist', query, photo);
-  requestAnimationFrame(() => requestAnimationFrame(() => { window.__shotReady = true; }));
+export function shotModeFromParams(params) {
+  const raw = (params.get('shot') || '').trim().toLowerCase();
+  return SHOT_MODES.includes(raw) ? raw : 'cover';
+}
+
+export function applyShotMode(doc, mode) {
+  const body = doc.body;
+  body.classList.remove('shot-cover', 'shot-editor');
+  body.classList.add(mode === 'editor' ? 'shot-editor' : 'shot-cover');
+  const editor = doc.getElementById('editorPanel');
+  const stage = doc.getElementById('stage');
+  if (editor) editor.hidden = mode !== 'editor';
+  if (stage) stage.classList.toggle('full', mode !== 'editor');
+  return mode;
+}
+
+// Viewport sizes the screenshot driver uses, keyed by shot size.
+export function shotViewport(shot) {
+  if (!shot) return { w: 1280, h: 800 };
+  if (shot.size === 'portrait') return { w: 1080, h: 1350 };
+  if (shot.size === 'square') return { w: 1080, h: 1080 };
+  if (shot.size === 'story') return { w: 1080, h: 1920 };
+  return { w: 1280, h: 800 };
 }
