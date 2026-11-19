@@ -1,15 +1,20 @@
-// Solmarina Cover Maker — this entry's build: a multi-panel GTA-style poster maker
-// (app/src/cover.js draws the panels, the sunset/neon grades, the bold title and the
-// mission HUD; app/src/main.js wires the editor). The plumbing below is the kit's.
+// Solmarina Cover Maker v2 — this entry's build: an all-photo GTA-style poster
+// maker. Every panel shows a photo (each with its own crop and zoom), one giant
+// title overlaps the panels like a real game cover, and a cinematic grade sits
+// over the whole thing. app/src/cover.js draws the panels, the sunset/neon
+// grades, the giant title and the mission HUD; app/src/main.js wires the
+// editor; app/src/scenes.js holds the drawn vector scenes, which are a manual
+// fallback only — no default, preset or screenshot path ever shows one. The
+// plumbing below is the kit's.
 //
 // A working gta6-cover-art-01 entry (Node 22, standard library only): the app is this directory's app/ folder, plain
 // static files a desktop browser loads offline (app/index.html and its ES modules, no library and no network
 // request), and the program hands it in. It copies app/ and screenshots/ from beside this file to /output and writes
-// /output/dossier.json, the summary the judge reads, with the vendored make.fun library. Only the plumbing, not the
-// cover art the bounty asks for: Cover Snap, a plain one-photo square cover with a sunset tint and a bold caption,
-// exported as a 1080 x 1080 PNG. Its two sample photos (app/samples/) were made for make.fun with an image model and
-// are free to use. Build your own GTA-style cover maker in its place, put your 3 or 4 PNG or JPEG screenshots in
-// screenshots/ (the first by name is the cover) and run it.
+// /output/dossier.json, the summary the judge reads, with the vendored make.fun library. The v2 app in app/ is the
+// Solmarina Cover Maker: all-photo panels, a giant overlapping title, a cinematic grade and a mission HUD, exported
+// as PNGs in 1080 x 1080, 1080 x 1350 and 1920 x 1080. Its two sample photos (app/samples/) were made for make.fun
+// with an image model and are free to use. Put your 3 or 4 PNG or JPEG screenshots in screenshots/ (the first by
+// name is the cover) and run it.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:

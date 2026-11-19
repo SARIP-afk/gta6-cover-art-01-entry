@@ -5,18 +5,23 @@
 import { GRADES, LAYOUTS } from './presets.js';
 import { drawScene, mulberry32 } from './scenes.js';
 
-/** The poster geometry for a canvas of W x H: frame, title band, panel area, HUD. */
+/** The poster geometry for a canvas of W x H: frame, panel area, HUD, and the
+ *  title band that overlaps the lower part of the panels (like the winning
+ *  covers: the giant title sits ON the photos, not in a strip above them). */
 export function coverGeometry(w, h) {
   const frame = Math.max(8, Math.round(w * 0.012));
-  const titleH = Math.round(h * 0.165);
   const hudH = Math.round(h * 0.085);
+  // Panels fill nearly the whole canvas, down to the HUD strip.
   const area = {
     x: frame,
-    y: frame + titleH,
+    y: frame,
     w: w - frame * 2,
-    h: h - frame * 2 - titleH - hudH,
+    h: h - frame * 2 - hudH,
   };
-  return { frame, titleH, hudH, area };
+  // The title band: the bottom ~24% of the panel area, overlapping the photos.
+  const bandH = Math.round(area.h * 0.24);
+  const bandY = area.y + area.h - bandH;
+  return { frame, titleH: bandH, bandH, bandY, hudH, area };
 }
 
 /** Panel rectangles for a layout inside the panel area, with gutters between them. */
@@ -141,6 +146,22 @@ export function drawPanel(ctx, rect, panel, photos, grade, isHero) {
   tint.addColorStop(1, grade.tintBottom);
   ctx.fillStyle = tint;
   ctx.fillRect(x, y, w, h);
+  // Cinematic grading: a warm soft-light wash from the top (sunset) and a
+  // teal soft-light wash from the bottom (shadows), so the photos read warm
+  // on top and cool below instead of flat.
+  ctx.save();
+  ctx.globalCompositeOperation = 'soft-light';
+  const warm = ctx.createLinearGradient(0, y, 0, y + h * 0.55);
+  warm.addColorStop(0, grade.warm || '#ff7a2a');
+  warm.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = warm;
+  ctx.fillRect(x, y, w, h * 0.55);
+  const cool = ctx.createLinearGradient(0, y + h * 0.45, 0, y + h);
+  cool.addColorStop(0, 'rgba(0,0,0,0)');
+  cool.addColorStop(1, grade.cool || '#0e5a68');
+  ctx.fillStyle = cool;
+  ctx.fillRect(x, y + h * 0.45, w, h * 0.55);
+  ctx.restore();
   // A soft vignette so the panel edges sit back against the frame.
   const vig = ctx.createRadialGradient(
     x + w / 2, y + h / 2, Math.min(w, h) * 0.35,
@@ -160,7 +181,7 @@ export function drawPanel(ctx, rect, panel, photos, grade, isHero) {
   ctx.lineWidth = Math.max(1, w * 0.003);
   ctx.strokeRect(x, y, w, h);
   ctx.restore();
-  if (isHero) drawHalftoneDots(ctx, x + w * 0.82, y + h * 0.03, w * 0.15, h * 0.2, w);
+  // (v2: no halftone dots — the starburst badge now owns the hero corner.)
 }
 
 /** Halftone dots in a corner: a print-poster texture for the hero panel. */
@@ -181,22 +202,27 @@ export function drawHalftoneDots(ctx, x, y, w, h, scale) {
 }
 
 /** The big poster title: bold condensed capitals with a gradient fill, a thick
- *  black outline and a drop shadow, leaning slightly like hand-lettered art. */
+ *  black outline and a drop shadow, leaning slightly like hand-lettered art.
+ *  The title is sized to ~58% of the band height and shrunk to fit ~96% of the
+ *  canvas width, so it shouts at thumbnail size. The tagline underneath is a
+ *  script face (falling back to bold italic sans if no script font exists). */
 export function drawPosterTitle(ctx, w, bandY, bandH, grade, title, tagline) {
   const text = (title || 'SOLMARINA').trim().toUpperCase();
-  const sub = (tagline || '').trim().toUpperCase();
-  let size = Math.round(bandH * 0.56);
+  const subRaw = (tagline || '').trim();
+  // Script faces read best in mixed case, not all caps.
+  const sub = subRaw.toLowerCase().replace(/(^|\s|-|')[a-z]/g, (c) => c.toUpperCase());
+  let size = Math.round(bandH * 0.58);
   const setFont = (s) => {
     ctx.font = `900 ${s}px "Arial Black", Arial, Helvetica, sans-serif`;
     try { ctx.letterSpacing = `${Math.round(s * 0.02)}px`; } catch { /* older canvas */ }
   };
   setFont(size);
-  while (ctx.measureText(text).width > w * 0.92 && size > 24) {
+  while (ctx.measureText(text).width > w * 0.96 && size > 24) {
     size -= 4;
     setFont(size);
   }
   const cx = w / 2;
-  const titleY = bandY + bandH * (sub ? 0.5 : 0.58);
+  const titleY = bandY + bandH * (sub ? 0.42 : 0.52);
   ctx.save();
   ctx.translate(cx, titleY);
   ctx.transform(1, 0, -0.05, 1, 0, 0);
@@ -219,18 +245,147 @@ export function drawPosterTitle(ctx, w, bandY, bandH, grade, title, tagline) {
   ctx.shadowOffsetY = 0;
   ctx.restore();
   if (sub) {
-    const subSize = Math.max(16, Math.round(bandH * 0.17));
+    const subSize = Math.max(16, Math.round(bandH * 0.24));
     ctx.save();
-    ctx.font = `800 ${subSize}px Arial, Helvetica, sans-serif`;
-    try { ctx.letterSpacing = `${Math.round(subSize * 0.3)}px`; } catch { /* older canvas */ }
+    ctx.font = `700 italic ${subSize}px "Brush Script MT", "Segoe Script", "Lucida Handwriting", cursive`;
+    try { ctx.letterSpacing = `${Math.round(subSize * 0.04)}px`; } catch { /* older canvas */ }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = grade.tagline;
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowColor = 'rgba(0,0,0,0.65)';
     ctx.shadowBlur = subSize * 0.25;
-    ctx.fillText(sub, cx, bandY + bandH * 0.86);
+    ctx.shadowOffsetY = subSize * 0.06;
+    // If no script face exists the stack falls back to a generic cursive; if
+    // even that is missing the text still renders, just in the default face.
+    ctx.fillText(sub, cx, bandY + bandH * 0.76);
     ctx.restore();
   }
+}
+
+/** The city-silhouette strip along the bottom edge of the title band: dark
+ *  towers with a few lit windows, deterministic so the cover is stable. */
+export function drawCityStrip(ctx, x, y, w, h, grade) {
+  const rand = mulberry32(99);
+  ctx.save();
+  ctx.fillStyle = 'rgba(10, 4, 20, 0.88)';
+  let bx = x;
+  while (bx < x + w) {
+    const bw = w * (0.03 + rand() * 0.05);
+    const bh = h * (0.35 + rand() * 0.65);
+    ctx.fillRect(bx, y + h - bh, bw, bh);
+    bx += bw + w * 0.008;
+  }
+  // A few lit windows, and two palm silhouettes at the edges.
+  ctx.fillStyle = grade.titleFrom;
+  const rand2 = mulberry32(7);
+  for (let i = 0; i < Math.floor(w / 46); i++) {
+    const wx = x + rand2() * w;
+    const wy = y + h * (0.15 + rand2() * 0.6);
+    ctx.globalAlpha = 0.55 + rand2() * 0.45;
+    ctx.fillRect(wx, wy, Math.max(2, w * 0.004), Math.max(2, h * 0.09));
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/** The title band itself: a vivid gradient with a subtle sunburst behind the
+ *  title, a bright edge line on top, and the city strip along its bottom. */
+export function drawTitleBand(ctx, w, bandY, bandH, grade) {
+  const x0 = Math.max(8, Math.round(w * 0.012));
+  const bw = w - x0 * 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, bandY, bw, bandH);
+  ctx.clip();
+  const band = ctx.createLinearGradient(0, bandY, 0, bandY + bandH);
+  band.addColorStop(0, grade.bandFrom || grade.band);
+  band.addColorStop(0.55, grade.bandMid || grade.skyBottom);
+  band.addColorStop(1, grade.bandTo || grade.skyBottom);
+  ctx.fillStyle = band;
+  ctx.fillRect(x0, bandY, bw, bandH);
+  // Subtle sunburst: pale rays fanning up from a point just below the band.
+  const cx = w / 2;
+  const cy = bandY + bandH * 1.15;
+  ctx.globalAlpha = 0.07;
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 13; i++) {
+    const a0 = Math.PI * (1.08 + (i / 13) * 0.84);
+    const a1 = a0 + Math.PI * 0.028;
+    const r = bandH * 2.2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, a0, a1);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  drawCityStrip(ctx, x0, bandY + bandH * 0.82, bw, bandH * 0.18, grade);
+  ctx.restore();
+  // Bright edge line on top of the band.
+  ctx.fillStyle = grade.bandEdge;
+  ctx.fillRect(x0, bandY, bw, Math.max(2, bandH * 0.02));
+}
+
+/** A yellow starburst badge ("EST. 2026") pinned to a corner of the hero panel. */
+export function drawStarburst(ctx, cx, cy, r, grade) {
+  const spikes = 16;
+  ctx.save();
+  ctx.beginPath();
+  for (let i = 0; i < spikes * 2; i++) {
+    const rad = i % 2 === 0 ? r : r * 0.76;
+    const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
+    const px = cx + Math.cos(a) * rad;
+    const py = cy + Math.sin(a) * rad;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#ffd400';
+  ctx.fill();
+  ctx.lineWidth = Math.max(2, r * 0.07);
+  ctx.strokeStyle = '#12061d';
+  ctx.stroke();
+  ctx.fillStyle = '#12061d';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const fs = Math.max(10, Math.round(r * 0.3));
+  ctx.font = `900 ${fs}px "Arial Black", Arial, Helvetica, sans-serif`;
+  ctx.fillText('EST.', cx, cy - fs * 0.55);
+  ctx.fillText('2026', cx, cy + fs * 0.55);
+  ctx.restore();
+}
+
+/** A diagonal ribbon across the top-left corner of the cover, carrying the
+ *  tagline text in bold capitals. */
+export function drawRibbon(ctx, w, h, grade, text) {
+  const label = (text || '').trim().toUpperCase();
+  if (!label) return;
+  const th = Math.max(20, Math.round(h * 0.032));
+  const bw = w * 0.34;
+  const d = w * 0.085;
+  ctx.save();
+  ctx.translate(d, d);
+  ctx.rotate(-Math.PI / 4);
+  ctx.fillStyle = '#ff2e88';
+  ctx.fillRect(-bw / 2, -th / 2, bw, th);
+  ctx.fillStyle = 'rgba(18, 6, 29, 0.9)';
+  ctx.fillRect(-bw / 2, -th / 2, bw, Math.max(2, th * 0.1));
+  ctx.fillRect(-bw / 2, th / 2 - Math.max(2, th * 0.1), bw, Math.max(2, th * 0.1));
+  let fs = Math.round(th * 0.52);
+  const setFont = (s) => {
+    ctx.font = `900 ${s}px "Arial Black", Arial, Helvetica, sans-serif`;
+    try { ctx.letterSpacing = `${Math.round(s * 0.06)}px`; } catch { /* older canvas */ }
+  };
+  setFont(fs);
+  while (ctx.measureText(label).width > bw * 0.92 && fs > 9) {
+    fs -= 1;
+    setFont(fs);
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, 0, 1);
+  ctx.restore();
 }
 
 /** The bottom HUD strip: a yellow mission banner, the cash, and the wanted stars.
@@ -320,33 +475,37 @@ export function drawGrain(ctx, w, h) {
   ctx.restore();
 }
 
-/** Draws the whole cover onto the canvas, at the canvas's own size. */
+/** Draws the whole cover onto the canvas, at the canvas's own size. v2 order:
+ *  photo panels fill the canvas first; the giant title band overlaps their
+ *  lower part; then the starburst badge, the corner ribbon, and the HUD. */
 export function drawCover(canvas, state) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
   const grade = GRADES[state.grade] || GRADES.sunset;
   const layout = LAYOUTS[state.layout] ? state.layout : 'hero-left';
-  const { frame, titleH, hudH, area } = coverGeometry(w, h);
+  const { frame, bandH, bandY, hudH, area } = coverGeometry(w, h);
   const gutter = Math.max(6, Math.round(w * 0.012));
   ctx.fillStyle = grade.frame;
   ctx.fillRect(0, 0, w, h);
-  // Title band: a deep gradient with a bright edge line.
-  const band = ctx.createLinearGradient(0, frame, 0, frame + titleH);
-  band.addColorStop(0, grade.band);
-  band.addColorStop(1, grade.skyBottom);
-  ctx.fillStyle = band;
-  ctx.fillRect(frame, frame, w - frame * 2, titleH);
-  ctx.fillStyle = grade.bandEdge;
-  ctx.fillRect(frame, frame + titleH - Math.max(2, h * 0.004), w - frame * 2, Math.max(2, h * 0.004));
-  drawPosterTitle(ctx, w, frame, titleH, grade, state.title, state.tagline);
-  // Panels.
+  // Panels: all photo in every default/preset/shot flow.
   const rects = layoutPanelRects(layout, area, gutter);
   const panels = state.panels || [];
   rects.forEach((rect, i) => {
     const panel = panels[i] || { photo: null, scene: 'sunset', zoom: 1, cx: 0.5, cy: 0.38 };
     drawPanel(ctx, rect, panel, state.photos || [], grade, i === 0);
   });
+  // Title band overlapping the lower part of the panels, title + script tagline.
+  drawTitleBand(ctx, w, bandY, bandH, grade);
+  drawPosterTitle(ctx, w, bandY, bandH, grade, state.title, state.tagline);
+  // Starburst badge on the hero panel's top-right corner.
+  const hero = rects[0];
+  if (hero) {
+    const r = Math.max(26, Math.min(hero.w, hero.h) * 0.11);
+    drawStarburst(ctx, hero.x + hero.w - r * 0.85, hero.y + r * 0.85, r, grade);
+  }
+  // Diagonal ribbon at the top-left corner of the cover.
+  drawRibbon(ctx, w, h, grade, state.tagline);
   drawMissionHud(ctx, w, h, h - frame - hudH, hudH, grade, state);
   drawGrain(ctx, w, h);
 }

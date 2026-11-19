@@ -27,12 +27,40 @@ const state = {
   selectedPanel: 0,
 };
 
-/** Builds the panel list for the current layout, keeping fills where they fit. */
+/** Varied crops so one photo fills different panels like different shots. */
+const PHOTO_CROPS = [
+  { zoom: 1, cx: 0.5, cy: 0.38 },
+  { zoom: 1.25, cx: 0.35, cy: 0.42 },
+  { zoom: 1.45, cx: 0.45, cy: 0.3 },
+  { zoom: 1.2, cx: 0.6, cy: 0.35 },
+];
+
+/** Builds the panel list for the current layout, keeping fills where they fit.
+ *  Photo-first: whenever photos are loaded, every panel is a photo (cycling the
+ *  shelf with a different crop per panel). Drawn scenes are never a default —
+ *  they only appear when the user picks one in the panel dropdown. With no
+ *  photos loaded yet, scenes are the only thing to show, so they stay as the
+ *  empty-state fallback. */
 function panelsForLayout(layout, previous) {
   const count = LAYOUTS[layout].panels;
   const out = [];
   for (let i = 0; i < count; i++) {
     const old = previous[i];
+    if (old && old.photo != null) {
+      out.push(old);
+      continue;
+    }
+    if (state.photos.length > 0) {
+      const crop = PHOTO_CROPS[i % PHOTO_CROPS.length];
+      out.push({
+        photo: i % state.photos.length,
+        scene: null,
+        zoom: crop.zoom,
+        cx: crop.cx,
+        cy: crop.cy,
+      });
+      continue;
+    }
     out.push(old || { photo: null, scene: i === 0 ? 'sunset' : 'skyline', zoom: 1, cx: 0.5, cy: 0.38 });
   }
   return out;
@@ -130,11 +158,18 @@ async function applyAutoGta() {
     syncGradeButtons();
     syncSizeRadios();
     state.panels = AUTO_GTA.panels.map((fill) => {
-      const panel = { photo: fill.photo, scene: fill.scene, zoom: 1, cx: 0.5, cy: 0.38 };
+      const panel = {
+        photo: fill.photo,
+        scene: fill.scene,
+        zoom: fill.zoom ?? 1,
+        cx: fill.cx ?? 0.5,
+        cy: fill.cy ?? 0.38,
+      };
+      // A preset crop (zoom/cx/cy) wins; otherwise auto-crop on the focus point.
       if (fill.photo != null && state.photos[fill.photo]) {
         const focus = state.photos[fill.photo].focus;
-        panel.cx = focus.cx;
-        panel.cy = focus.cy;
+        if (fill.cx == null) panel.cx = focus.cx;
+        if (fill.cy == null) panel.cy = focus.cy;
       }
       return panel;
     });
@@ -155,6 +190,8 @@ async function loadSamples() {
   // Pier first on the shelf (index 0), boulevard second (index 1).
   if (!state.photos.some((p) => p.name === 'pier.jpg')) addPhoto(pier, 'pier.jpg');
   if (!state.photos.some((p) => p.name === 'boulevard.jpg')) addPhoto(boulevard, 'boulevard.jpg');
+  // Photo-first: any scene-only panel becomes a photo panel now that photos exist.
+  state.panels = panelsForLayout(state.layout, state.panels);
   return state.photos;
 }
 
@@ -282,6 +319,8 @@ document.getElementById('photos').addEventListener('change', async (event) => {
   }
   if (files.length > 0) {
     setStatus(`${files.length} photo${files.length > 1 ? 's' : ''} loaded — click a thumbnail to put it in a panel, or press Auto GTA.`);
+    // Photo-first: scene-only panels become photo panels now that photos exist.
+    state.panels = panelsForLayout(state.layout, state.panels);
     redraw();
   }
 });
@@ -422,12 +461,20 @@ if (shot) {
       await applyAutoGta();
     } else {
       await loadSamples();
+      // All-photo: the hero is the requested sample, the other panels cycle the
+      // two samples with different crops/zooms — no drawn scene anywhere.
       const photoIndex = photoName === 'boulevard' ? 1 : 0;
-      state.panels = panelsForLayout(state.layout, []);
-      state.panels[0] = { photo: photoIndex, scene: null, zoom: 1, cx: 0.5, cy: 0.38 };
-      state.panels[1] = { photo: photoIndex === 0 ? 1 : 0, scene: null, zoom: 1.15, cx: 0.42, cy: 0.4 };
-      if (state.panels[2]) state.panels[2] = { photo: null, scene: 'sunset', zoom: 1, cx: 0.5, cy: 0.38 };
-      if (state.panels[3]) state.panels[3] = { photo: null, scene: 'skyline', zoom: 1, cx: 0.5, cy: 0.38 };
+      const other = photoIndex === 0 ? 1 : 0;
+      const crops = [
+        { photo: photoIndex, zoom: 1, cx: 0.5, cy: 0.38 },
+        { photo: other, zoom: 1.15, cx: 0.42, cy: 0.4 },
+        { photo: photoIndex, zoom: 1.45, cx: 0.42, cy: 0.22 },
+        { photo: other, zoom: 1.35, cx: 0.7, cy: 0.35 },
+      ];
+      state.panels = panelsForLayout(state.layout, []).map((_, i) => ({
+        ...crops[i],
+        scene: null,
+      }));
       state.selectedPanel = 0;
       redraw();
     }

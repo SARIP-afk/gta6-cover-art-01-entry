@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solmarina Cover Maker — GTA-style poster maker</title>
+<title>Solmarina Cover Maker v2 — all-photo GTA-style poster maker</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <aside class="controls">
     <header>
       <h1>Solmarina Cover Maker</h1>
-      <p>Your photo, your caption — a GTA-style multi-panel poster, exported as a PNG. Everything runs on your machine; photos never leave it.</p>
+      <p>v2: every panel shows your photo — no filler scenes — under one giant overlapping title with a cinematic grade. Your photo, your caption, a GTA-style multi-panel poster, exported as a PNG. Everything runs on your machine; photos never leave it.</p>
     </header>
 
     <section aria-label="Photos">
@@ -21,13 +21,13 @@
       </label>
       <button id="loadSamples" type="button">Load sample photos</button>
       <div id="photoShelf" class="shelf"></div>
-      <p id="photoEmpty" class="hint">No photos yet — add your own, or load the samples to try it instantly.</p>
+      <p id="photoEmpty" class="hint">No photos yet — add your own, or load the samples to try it instantly. Once photos are in, every panel is photo-filled.</p>
     </section>
 
     <section aria-label="One-click cover">
       <h2>2 · One click</h2>
       <button id="autoGta" type="button" class="primary">★ Auto GTA — make my cover</button>
-      <p class="hint">One click: photos in, a finished cover out. Tweak it below, or export right away.</p>
+      <p class="hint">One click: photos in, a finished all-photo cover out — giant title, cinematic grade, mission HUD. Tweak it below, or export right away.</p>
     </section>
 
     <section aria-label="Layout and grade">
@@ -73,7 +73,7 @@
         <button id="useInAll" type="button">Use this photo in all panels</button>
         <button id="centerCrop" type="button">Centre the crop</button>
       </div>
-      <p class="hint">Click a panel in the preview to select it. Drag the photo inside a panel to move it.</p>
+      <p class="hint">Click a panel in the preview to select it. Drag the photo inside a panel to move it. A panel with no photo falls back to a drawn scene — pick one from “Fill it with”.</p>
     </section>
 
     <section aria-label="Export">
@@ -88,13 +88,13 @@
     </section>
 
     <footer>
-      <p>Original art, drawn on canvas. No Rockstar logo, artwork or font — the lettering is a heavy system font, the scenes are vector shapes.</p>
+      <p>Original art, drawn on canvas. No Rockstar logo, artwork or font — the lettering is a heavy system font, the scenes are vector shapes. v2 covers are all-photo with a giant overlapping title and a cinematic grade.</p>
     </footer>
   </aside>
 
   <main class="preview">
     <canvas id="cover" width="1920" height="1080" aria-label="Live cover preview"></canvas>
-    <p class="hint">Live preview — what you see is the PNG you export.</p>
+    <p class="hint">Live preview — what you see is the PNG you export. The title overlaps the panels, just like a real game cover.</p>
   </main>
 </div>
 <script type="module" src="./src/main.js"></script>

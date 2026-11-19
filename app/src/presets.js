@@ -7,17 +7,17 @@ export const LAYOUTS = {
   'hero-left': {
     label: 'Hero left',
     panels: 3,
-    hint: 'One big hero panel, two stacked scenes on the right.',
+    hint: 'One big hero photo, two stacked photos on the right.',
   },
   'hero-top': {
     label: 'Hero top',
     panels: 4,
-    hint: 'One wide hero panel, a strip of three scenes below it.',
+    hint: 'One wide hero photo, a strip of three photos below it.',
   },
   grid: {
     label: 'Grid 2 x 2',
     panels: 4,
-    hint: 'Four equal panels, like a classic multi-panel poster.',
+    hint: 'Four equal photo panels, like a classic multi-panel poster.',
   },
 };
 
@@ -33,6 +33,14 @@ export const GRADES = {
     sunRim: '#ff7a3c',
     tintTop: 'rgba(255, 122, 60, 0.16)',
     tintBottom: 'rgba(123, 47, 139, 0.30)',
+    // Cinematic grade: a warm soft-light wash from the top, a teal soft-light
+    // wash from the bottom. Applied on top of the tint in drawPanel.
+    warm: '#ff7a2a',
+    cool: '#0e5a68',
+    // The title band that overlaps the panels: a vivid sunset gradient.
+    bandFrom: '#ff8a2a',
+    bandMid: '#ff5e7a',
+    bandTo: '#7b2f8b',
     frame: '#14081f',
     band: '#1c0b2e',
     bandEdge: '#ff9a3c',
@@ -55,6 +63,11 @@ export const GRADES = {
     sunRim: '#7a2bff',
     tintTop: 'rgba(122, 43, 255, 0.15)',
     tintBottom: 'rgba(255, 110, 199, 0.19)',
+    warm: '#ff6ec7',
+    cool: '#0a5e6e',
+    bandFrom: '#3b1a8e',
+    bandMid: '#7a2bff',
+    bandTo: '#ff2e88',
     frame: '#05030a',
     band: '#0d0620',
     bandEdge: '#ff6ec7',
@@ -77,6 +90,11 @@ export const GRADES = {
     sunRim: '#ffb347',
     tintTop: 'rgba(255, 179, 199, 0.14)',
     tintBottom: 'rgba(168, 200, 232, 0.22)',
+    warm: '#ffb347',
+    cool: '#3f7d8c',
+    bandFrom: '#ffb347',
+    bandMid: '#ffb3c7',
+    bandTo: '#ff5e7a',
     frame: '#2b2b3a',
     band: '#fff4e0',
     bandEdge: '#ff8a5c',
@@ -117,17 +135,20 @@ export const DEFAULT_CAPTION = {
   wanted: 3,
 };
 
-/** The one-click preset: a finished cover from the two bundled sample photos. */
+/** The one-click preset: a finished cover from the two bundled sample photos.
+ *  All-photo: the hero gets the boulevard portrait, the top-right panel the pier
+ *  photo, and the bottom-right the boulevard again — re-cropped tighter and
+ *  shifted right, so the same photo reads as a different shot. No drawn scene
+ *  anywhere in the default flow. */
 export const AUTO_GTA = {
   layout: 'hero-left',
   grade: 'sunset',
   size: 'wide',
   caption: { ...DEFAULT_CAPTION },
-  // panel fills: [photo index, scene name] — hero gets the boulevard portrait,
-  // the top-right panel the pier photo, the bottom-right a drawn sunset scene.
+  // panel fills: [photo index, zoom, crop centre] — every panel is a photo.
   panels: [
-    { photo: 1, scene: null },
-    { photo: 0, scene: null },
-    { photo: null, scene: 'sunset' },
+    { photo: 1, scene: null, zoom: 1, cx: 0.5, cy: 0.38 },
+    { photo: 0, scene: null, zoom: 1, cx: 0.5, cy: 0.38 },
+    { photo: 1, scene: null, zoom: 1.45, cx: 0.45, cy: 0.22 },
   ],
 };
