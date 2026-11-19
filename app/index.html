@@ -3,21 +3,100 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover Snap</title>
+<title>Solmarina Cover Maker — GTA-style poster maker</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<main class="app">
-  <section class="controls">
-    <h1>Cover Snap</h1>
-    <p>A photo and a caption, made into a square cover.</p>
-    <label>Photo <input id="photo" type="file" accept="image/*"></label>
-    <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
-    <button id="export" type="button">Export PNG 1080 x 1080</button>
-    <p id="status" role="status"></p>
-  </section>
-  <canvas id="cover" width="1080" height="1080" aria-label="The cover"></canvas>
-</main>
+<div class="page">
+  <aside class="controls">
+    <header>
+      <h1>Solmarina Cover Maker</h1>
+      <p>Your photo, your caption — a GTA-style multi-panel poster, exported as a PNG. Everything runs on your machine; photos never leave it.</p>
+    </header>
+
+    <section aria-label="Photos">
+      <h2>1 · Photos</h2>
+      <label class="file">Add your photos
+        <input id="photos" type="file" accept="image/*" multiple>
+      </label>
+      <button id="loadSamples" type="button">Load sample photos</button>
+      <div id="photoShelf" class="shelf"></div>
+      <p id="photoEmpty" class="hint">No photos yet — add your own, or load the samples to try it instantly.</p>
+    </section>
+
+    <section aria-label="One-click cover">
+      <h2>2 · One click</h2>
+      <button id="autoGta" type="button" class="primary">★ Auto GTA — make my cover</button>
+      <p class="hint">One click: photos in, a finished cover out. Tweak it below, or export right away.</p>
+    </section>
+
+    <section aria-label="Layout and grade">
+      <h2>3 · Layout &amp; grade</h2>
+      <div class="btnrow" role="group" aria-label="Layout">
+        <button type="button" class="layout-btn" data-layout="hero-left">Hero left</button>
+        <button type="button" class="layout-btn" data-layout="hero-top">Hero top</button>
+        <button type="button" class="layout-btn" data-layout="grid">Grid 2 × 2</button>
+      </div>
+      <div class="btnrow" role="group" aria-label="Colour grade">
+        <button type="button" class="grade-btn" data-grade="sunset">Sunset Vice City</button>
+        <button type="button" class="grade-btn" data-grade="neon">Neon Night</button>
+        <button type="button" class="grade-btn" data-grade="pastel">Pastel Day</button>
+      </div>
+    </section>
+
+    <section aria-label="Caption">
+      <h2>4 · Caption</h2>
+      <label>Title <input id="title" type="text" maxlength="24" value="SOLMARINA"></label>
+      <label>Tagline <input id="tagline" type="text" maxlength="30" value="SUNSET HEIST"></label>
+      <label>Mission <input id="mission" type="text" maxlength="24" value="PIER PRESSURE"></label>
+      <div class="row2">
+        <label>Cash <input id="cash" type="text" maxlength="12" value="$1,250"></label>
+        <label>Wanted stars
+          <select id="wanted">
+            <option value="0">0 ★</option>
+            <option value="1">1 ★</option>
+            <option value="2">2 ★</option>
+            <option value="3" selected>3 ★</option>
+            <option value="4">4 ★</option>
+            <option value="5">5 ★</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section aria-label="Selected panel">
+      <h2>5 · Selected panel</h2>
+      <label>Panel <select id="panelSelect"></select></label>
+      <label>Fill it with <select id="panelPhoto"></select></label>
+      <label>Zoom <span class="sliderline"><input id="zoom" type="range" min="100" max="250" value="100"><output id="zoomVal">100%</output></span></label>
+      <div class="btnrow">
+        <button id="useInAll" type="button">Use this photo in all panels</button>
+        <button id="centerCrop" type="button">Centre the crop</button>
+      </div>
+      <p class="hint">Click a panel in the preview to select it. Drag the photo inside a panel to move it.</p>
+    </section>
+
+    <section aria-label="Export">
+      <h2>6 · Export PNG</h2>
+      <div class="sizes" role="group" aria-label="Export size">
+        <label><input type="radio" name="size" value="square"> Square 1080 × 1080</label>
+        <label><input type="radio" name="size" value="portrait"> Portrait 1080 × 1350</label>
+        <label><input type="radio" name="size" value="wide" checked> Wide 1920 × 1080</label>
+      </div>
+      <button id="exportBtn" type="button" class="primary">Export PNG</button>
+      <p id="status" role="status"></p>
+    </section>
+
+    <footer>
+      <p>Original art, drawn on canvas. No Rockstar logo, artwork or font — the lettering is a heavy system font, the scenes are vector shapes.</p>
+    </footer>
+  </aside>
+
+  <main class="preview">
+    <canvas id="cover" width="1920" height="1080" aria-label="Live cover preview"></canvas>
+    <p class="hint">Live preview — what you see is the PNG you export.</p>
+  </main>
+</div>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

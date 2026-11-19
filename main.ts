@@ -1,3 +1,7 @@
+// Solmarina Cover Maker — this entry's build: a multi-panel GTA-style poster maker
+// (app/src/cover.js draws the panels, the sunset/neon grades, the bold title and the
+// mission HUD; app/src/main.js wires the editor). The plumbing below is the kit's.
+//
 // A working gta6-cover-art-01 entry (Node 22, standard library only): the app is this directory's app/ folder, plain
 // static files a desktop browser loads offline (app/index.html and its ES modules, no library and no network
 // request), and the program hands it in. It copies app/ and screenshots/ from beside this file to /output and writes
